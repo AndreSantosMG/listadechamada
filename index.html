@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f172a">
+<title>Transporte Escolar</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<style>
+  :root{--bg:#0f172a;--surface:#1e293b;--surface2:#273449;--border:#334155;--accent:#38bdf8;--accent2:#0ea5e9;--success:#22c55e;--warning:#f59e0b;--danger:#ef4444;--text:#f1f5f9;--muted:#94a3b8;--radius:14px;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;overflow-x:hidden;}
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+  .hicon{width:36px;height:36px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .header h1{font-size:15px;font-weight:600;}.header p{font-size:12px;color:var(--muted);margin-top:1px;}
+  .offline{margin-left:auto;background:var(--warning);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:none;flex-shrink:0;}
+  .offline.show{display:block;}
+  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);}
+  .tab{flex:1;padding:12px 8px;font-size:11px;font-weight:600;text-align:center;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase;letter-spacing:.3px;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .screen{display:none;padding:16px;}.screen.active{display:block;}
+
+  .swrap{position:relative;background:#000;border-radius:var(--radius);overflow:hidden;aspect-ratio:1;max-width:340px;margin:0 auto 10px;border:2px solid var(--border);transition:border-color .2s;}
+  .swrap.detected{border-color:var(--success);}
+  #video{width:100%;height:100%;object-fit:cover;display:block;}
+  .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+  .sframe{width:65%;aspect-ratio:1;border:3px solid var(--accent);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);transition:border-color .2s;}
+  .sframe.detected{border-color:var(--success);}
+  .sline{position:absolute;width:60%;height:2px;background:var(--accent);opacity:.8;animation:scan 2s linear infinite;}
+  @keyframes scan{0%{top:20%}100%{top:80%}}
+  .btorch{position:absolute;bottom:10px;right:10px;width:38px;height:38px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);border-radius:50%;font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:10;}
+  .btorch.show{display:flex;}.btorch.on{background:var(--warning);border-color:var(--warning);}
+
+  .srow{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:10px;}
+  .sdot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .sdot.active{background:var(--success);animation:blink 1.5s ease-in-out infinite;}
+  .sdot.reading{background:var(--warning);animation:blink .5s ease-in-out infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .stext{font-size:13px;color:var(--muted);}
+
+  .diag{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px;display:none;}
+  .diag.show{display:block;}
+  .diag h4{font-size:11px;font-weight:700;color:var(--warning);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .diag-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .diag-item{background:var(--bg);border-radius:8px;padding:8px 10px;}
+  .diag-label{font-size:10px;color:var(--muted);margin-bottom:2px;}
+  .diag-value{font-size:13px;font-weight:600;}
+  .ok{color:var(--success);}.warn{color:var(--warning);}.bad{color:var(--danger);}
+  .diag-raw{margin-top:8px;font-size:11px;color:var(--muted);word-break:break-all;}
+
+  .bcam{width:100%;padding:14px;background:var(--accent);color:#000;font-weight:700;font-size:15px;border:none;border-radius:var(--radius);cursor:pointer;margin-bottom:10px;transition:all .15s;}
+  .bcam:active{transform:scale(.98);}.bcam.on{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+  .bdiag{width:100%;padding:11px;background:var(--surface2);color:var(--muted);font-weight:700;font-size:13px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:12px;}
+  .bdiag.on{background:var(--warning);color:#000;border-color:var(--warning);}
+
+  .cpanel{background:var(--surface);border:2px solid var(--success);border-radius:var(--radius);padding:20px 16px;margin-bottom:14px;text-align:center;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);display:none;}
+  .cpanel.show{display:block;}
+  @keyframes popIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+  .clabel{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;}
+  .cavatar{width:64px;height:64px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#000;margin:0 auto 12px;}
+  .cname{font-size:22px;font-weight:700;margin-bottom:4px;letter-spacing:-.5px;}
+  .csub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+  .cbtns{display:flex;gap:10px;}
+  .bconf{flex:1;padding:14px;font-weight:700;font-size:15px;border:none;border-radius:var(--radius);cursor:pointer;transition:all .15s;}
+  .bconf:active{transform:scale(.97);}
+  .byes{background:var(--success);color:#fff;font-size:16px;}.bno{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+
+  .mwrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-top:4px;}
+  .mwrap h3{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;}
+  .mrow{display:flex;gap:8px;}
+  .mrow input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-size:14px;outline:none;}
+  .mrow input:focus{border-color:var(--accent);}
+  .bman{padding:10px 16px;background:var(--accent2);color:#fff;font-weight:700;font-size:13px;border:none;border-radius:10px;cursor:pointer;}
+
+  .divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+  .slabel{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+  .rlist{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;}
+  .ritem{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:12px;animation:slideIn .3s ease;}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+  .ravatar{width:34px;height:34px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#000;flex-shrink:0;}
+  .rname{font-size:14px;font-weight:600;}.rtime{font-size:11px;color:var(--muted);}
+  .rbadge{margin-left:auto;background:var(--success);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;}
+
+  .dbar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .dlabel{font-size:12px;color:var(--muted);}.dvalue{font-size:15px;font-weight:700;}
+  .cbadge{background:var(--accent);color:#000;font-weight:700;font-size:13px;padding:4px 12px;border-radius:20px;}
+  .litem{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+  .lnum{font-size:11px;color:var(--muted);font-weight:700;min-width:20px;}
+  .lname{font-size:14px;font-weight:600;flex:1;}.ltime{font-size:12px;color:var(--muted);}
+  .empty{text-align:center;padding:48px 24px;}.eicon{font-size:48px;margin-bottom:12px;opacity:.4;}.etext{color:var(--muted);font-size:14px;line-height:1.6;}
+  .arow{display:flex;gap:8px;margin-top:16px;}
+  .bact{flex:1;padding:12px;font-weight:700;font-size:13px;border-radius:var(--radius);cursor:pointer;border:none;transition:all .15s;}
+  .bact:active{transform:scale(.97);}
+  .bexp{background:var(--success);color:#fff;}.bsync{background:var(--accent);color:#000;}
+  .bclr{background:var(--surface2);color:var(--muted);border:1px solid var(--border);width:100%;margin-top:8px;padding:12px;font-size:13px;font-weight:700;border-radius:var(--radius);cursor:pointer;}
+
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+  .field input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:10px;font-size:14px;outline:none;}
+  .field input:focus{border-color:var(--accent);}
+  .field .hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5;}
+  .icard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
+  .icard h3{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--accent);}
+  .icard p{font-size:12px;color:var(--muted);line-height:1.6;}
+  .step{display:flex;gap:10px;margin-bottom:6px;}
+  .stepn{background:var(--accent);color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px;}
+  .bsave{width:100%;padding:14px;background:var(--accent);color:#000;font-weight:700;font-size:15px;border:none;border-radius:var(--radius);cursor:pointer;margin-top:4px;}
+  .code{font-family:monospace;font-size:11px;background:var(--bg);padding:10px;border-radius:8px;margin-top:8px;white-space:pre-wrap;user-select:all;color:var(--muted);line-height:1.5;border:1px solid var(--border);}
+  .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-120px);background:var(--success);color:#fff;padding:12px 20px;border-radius:40px;font-weight:600;font-size:14px;z-index:999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,.4);max-width:90vw;text-align:center;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .toast.error{background:var(--danger);}.toast.warn{background:var(--warning);color:#000;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="hicon">🚌</div>
+  <div><h1>Transporte Escolar</h1><p id="headerDate">Carregando...</p></div>
+  <span class="offline" id="offlineBadge">OFFLINE</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('scanner')">📷 Scanner</div>
+  <div class="tab" onclick="showTab('lista')">📋 Lista</div>
+  <div class="tab" onclick="showTab('config')">⚙️ Config</div>
+</div>
+
+<div class="screen active" id="tab-scanner">
+  <div class="swrap" id="swrap">
+    <video id="video" playsinline autoplay muted></video>
+    <div class="overlay">
+      <div class="sframe" id="sframe"></div>
+      <div class="sline"></div>
+    </div>
+    <button class="btorch" id="btnTorch" onclick="toggleTorch()">🔦</button>
+  </div>
+
+  <div class="srow"><div class="sdot" id="sdot"></div><span class="stext" id="stext">Pressione o botão para iniciar</span></div>
+  <button class="bcam" id="btnCam" onclick="toggleCamera()">▶ Iniciar Scanner</button>
+  <button class="bdiag" id="btnDiag" onclick="toggleDiag()">🔍 Diagnóstico</button>
+
+  <div class="diag" id="diagBox">
+    <h4>🔍 Diagnóstico em tempo real</h4>
+    <div class="diag-grid">
+      <div class="diag-item"><div class="diag-label">Resolução</div><div class="diag-value" id="dRes">—</div></div>
+      <div class="diag-item"><div class="diag-label">Engine</div><div class="diag-value" id="dEngine">—</div></div>
+      <div class="diag-item"><div class="diag-label">Frames lidos</div><div class="diag-value" id="dFrames">0</div></div>
+      <div class="diag-item"><div class="diag-label">QR detectado</div><div class="diag-value bad" id="dDetected">não</div></div>
+    </div>
+    <div class="diag-raw">Conteúdo: <span id="dRaw">—</span></div>
+  </div>
+
+  <div class="cpanel" id="cpanel">
+    <div class="clabel">✅ QR Code lido — confirme o embarque</div>
+    <div class="cavatar" id="cavatar">?</div>
+    <div class="cname" id="cname">—</div>
+    <div class="csub">Este é o aluno que está embarcando?</div>
+    <div class="cbtns">
+      <button class="bconf bno" onclick="cancelConfirm()">✕ Não</button>
+      <button class="bconf byes" onclick="doConfirm()">✓ Confirmar embarque</button>
+    </div>
+  </div>
+
+  <div class="mwrap">
+    <h3>Entrada manual</h3>
+    <div class="mrow">
+      <input type="text" id="manualInput" placeholder="Nome do aluno..." onkeydown="if(event.key==='Enter')addManual()">
+      <button class="bman" onclick="addManual()">+ Add</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div id="recentWrap" style="display:none">
+    <div class="slabel">Embarcados recentes</div>
+    <div class="rlist" id="recentList"></div>
+  </div>
+</div>
+
+<div class="screen" id="tab-lista">
+  <div class="dbar">
+    <div><div class="dlabel">Data de hoje</div><div class="dvalue" id="listDate">—</div></div>
+    <div class="cbadge" id="countBadge">0 alunos</div>
+  </div>
+  <div id="listContent"><div class="empty"><div class="eicon">🎒</div><div class="etext">Nenhum aluno registrado hoje.<br>Use o scanner para registrar embarques.</div></div></div>
+  <div class="arow" id="actionRow" style="display:none">
+    <button class="bact bexp" onclick="exportCSV()">📤 Exportar CSV</button>
+    <button class="bact bsync" onclick="syncSheets()">☁️ Enviar ao Sheets</button>
+  </div>
+  <button class="bclr" id="btnClear" style="display:none" onclick="clearList()">🗑 Limpar lista do dia</button>
+</div>
+
+<div class="screen" id="tab-config">
+  <div class="icard">
+    <h3>🔗 Integração com Google Sheets</h3>
+    <div class="step"><div class="stepn">1</div><p>Acesse sheets.new e crie uma nova planilha</p></div>
+    <div class="step"><div class="stepn">2</div><p>Extensões → Apps Script → cole o script abaixo</p></div>
+    <div class="step"><div class="stepn">3</div><p>Implantar → Nova implantação → Web App → Acesso: Qualquer pessoa</p></div>
+    <div class="step"><div class="stepn">4</div><p>Copie a URL gerada e cole no campo abaixo</p></div>
+  </div>
+  <div class="field"><label>Nome da monitora / motorista</label><input type="text" id="cfgNome" placeholder="Ex: Maria Silva"></div>
+  <div class="field"><label>Rota / Linha</label><input type="text" id="cfgRota" placeholder="Ex: Rota 01 — Centro"></div>
+  <div class="field">
+    <label>URL do Google Apps Script</label>
+    <input type="url" id="cfgUrl" placeholder="https://script.google.com/macros/s/...">
+    <div class="hint">Deixe em branco para usar apenas exportação CSV.</div>
+  </div>
+  <button class="bsave" onclick="saveConfig()">💾 Salvar configurações</button>
+  <div class="divider"></div>
+  <div class="icard">
+    <h3>📜 Script para Google Apps Script</h3>
+    <div class="code">function doPost(e){
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var data = JSON.parse(e.postData.contents);
+  var sheetName = data.data || 'Registros';
+  var sheet = ss.getSheetByName(sheetName)
+             || ss.insertSheet(sheetName);
+  if(sheet.getLastRow()===0)
+    sheet.appendRow(
+      ['Nome','Data','Hora','Rota','Monitor']);
+  data.alunos.forEach(function(a){
+    sheet.appendRow([
+      a.nome, a.data, a.hora,
+      data.rota, data.monitor]);
+  });
+  return ContentService
+    .createTextOutput('OK');
+}</div>
+  </div>
+  <div class="icard">
+    <h3>📱 QR Code dos alunos</h3>
+    <p>Conteúdo: nome do aluno em texto simples.<br>Ex: <code style="background:var(--bg);padding:2px 5px;border-radius:4px">Ana Souza</code><br><br>Gere gratuitamente em <strong>qr-code-generator.com</strong></p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── estado global ──────────────────────────────────────────────
+  let stream=null, scanning=false, loopHandle=null;
+  let alunos=[], config={};
+  let pendingName=null;
+  let lastScanned='', lastScannedTime=0;
+  let torchOn=false, torchTrack=null;
+  let diagMode=false, frameCount=0;
+  let useNativeDetector=false;
+  let nativeDetector=null;
+
+  const video=document.getElementById('video');
+  const canvas=document.createElement('canvas');
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+
+  // ── init ───────────────────────────────────────────────────────
+  function init(){
+    loadData(); updateUI(); updateDateLabels(); checkOnline();
+    window.addEventListener('online',checkOnline);
+    window.addEventListener('offline',checkOnline);
+
+    // Tenta usar BarcodeDetector nativo (Android Chrome 83+)
+    if('BarcodeDetector' in window){
+      BarcodeDetector.getSupportedFormats().then(fmts=>{
+        if(fmts.includes('qr_code')){
+          nativeDetector=new BarcodeDetector({formats:['qr_code']});
+          useNativeDetector=true;
+          document.getElementById('dEngine').textContent='Nativo ✅';
+          document.getElementById('dEngine').className='diag-value ok';
+        }
+      }).catch(()=>{});
+    }
+    if(!useNativeDetector){
+      document.getElementById('dEngine').textContent='jsQR';
+      document.getElementById('dEngine').className='diag-value warn';
+    }
+  }
+
+  // ── dados ──────────────────────────────────────────────────────
+  function loadData(){
+    try{
+      alunos=JSON.parse(localStorage.getItem('alunos_hoje')||'[]');
+      if(localStorage.getItem('alunos_data')!==getToday()){alunos=[];saveData();}
+      config=JSON.parse(localStorage.getItem('config')||'{}');
+      if(config.nome)document.getElementById('cfgNome').value=config.nome;
+      if(config.rota)document.getElementById('cfgRota').value=config.rota;
+      if(config.url)document.getElementById('cfgUrl').value=config.url;
+    }catch(e){}
+  }
+  function saveData(){
+    localStorage.setItem('alunos_hoje',JSON.stringify(alunos));
+    localStorage.setItem('alunos_data',getToday());
+  }
+  function getToday(){return new Date().toLocaleDateString('pt-BR');}
+  function getTime(){return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+  function checkOnline(){document.getElementById('offlineBadge').classList.toggle('show',!navigator.onLine);}
+  function updateDateLabels(){
+    document.getElementById('headerDate').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    document.getElementById('listDate').textContent=getToday();
+  }
+
+  // ── tabs ───────────────────────────────────────────────────────
+  function showTab(id){
+    document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['scanner','lista','config'][i]===id));
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById('tab-'+id).classList.add('active');
+    if(id==='lista')updateListUI();
+  }
+  function toggleDiag(){
+    diagMode=!diagMode;
+    document.getElementById('btnDiag').classList.toggle('on',diagMode);
+    document.getElementById('diagBox').classList.toggle('show',diagMode);
+    document.getElementById('btnDiag').textContent=diagMode?'🔍 Fechar diagnóstico':'🔍 Diagnóstico';
+  }
+
+  // ── câmera ─────────────────────────────────────────────────────
+  async function toggleCamera(){scanning?stopCamera():await startCamera();}
+
+  async function startCamera(){
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:'environment',width:{ideal:1280,min:640},height:{ideal:1280,min:640}}
+      });
+      video.srcObject=stream;
+      video.play().catch(()=>{});
+
+      scanning=true;
+      frameCount=0;
+      document.getElementById('btnCam').textContent='⏹ Parar Scanner';
+      document.getElementById('btnCam').classList.add('on');
+      setStatus('active','Aponte para o QR Code');
+
+      torchTrack=stream.getVideoTracks()[0];
+      const s=torchTrack.getSettings?torchTrack.getSettings():{};
+      document.getElementById('dRes').textContent=(s.width||'?')+'×'+(s.height||'?');
+      const caps=torchTrack.getCapabilities?torchTrack.getCapabilities():{};
+      if(caps.torch)document.getElementById('btnTorch').classList.add('show');
+
+      // Aguarda vídeo ter pixels antes de iniciar loop
+      video.addEventListener('playing', startLoop, {once:true});
+      // Fallback: inicia mesmo assim após 1s
+      setTimeout(()=>{ if(scanning&&frameCount===0) startLoop(); }, 1000);
+
+    }catch(e){
+      showToast('Erro na câmera: '+e.message,true);
+    }
+  }
+
+  function startLoop(){
+    if(loopHandle) return; // já iniciado
+    loopHandle = setTimeout(tick, 200);
+  }
+
+  async function tick(){
+    if(!scanning){ loopHandle=null; return; }
+
+    const w=video.videoWidth, h=video.videoHeight;
+    if(w>0 && h>0 && !pendingName){
+      frameCount++;
+      if(diagMode) document.getElementById('dFrames').textContent=frameCount;
+
+      let result=null;
+
+      if(useNativeDetector && nativeDetector){
+        // ── Engine nativa do sistema operacional ──
+        try{
+          const codes=await nativeDetector.detect(video);
+          if(codes.length>0) result=codes[0].rawValue;
+        }catch(e){}
+
+      } else {
+        // ── jsQR com múltiplos recortes ──
+        canvas.width=w; canvas.height=h;
+        ctx.drawImage(video,0,0,w,h);
+
+        // Tenta 3 regiões: imagem inteira, 80%, 60%
+        const regions=[
+          [0,0,w,h],
+          [Math.floor(w*.1),Math.floor(h*.1),Math.floor(w*.8),Math.floor(h*.8)],
+          [Math.floor(w*.2),Math.floor(h*.2),Math.floor(w*.6),Math.floor(h*.6)],
+        ];
+        for(const [x,y,rw,rh] of regions){
+          const id=ctx.getImageData(x,y,rw,rh);
+          const code=jsQR(id.data,rw,rh,{inversionAttempts:'attemptBoth'});
+          if(code){ result=code.data; break; }
+        }
+      }
+
+      if(diagMode){
+        document.getElementById('dDetected').textContent=result?'✅ SIM':'não';
+        document.getElementById('dDetected').className='diag-value '+(result?'ok':'bad');
+        if(result) document.getElementById('dRaw').textContent=result.substring(0,60);
+      }
+
+      if(result){
+        const now=Date.now();
+        if(result!==lastScanned||now-lastScannedTime>3000){
+          lastScanned=result; lastScannedTime=now;
+          flashDetected();
+          showConfirmation(parseQR(result));
+        }
+      }
+    }
+
+    loopHandle=setTimeout(tick, useNativeDetector?150:200);
+  }
+
+  function stopCamera(){
+    scanning=false;
+    if(loopHandle){ clearTimeout(loopHandle); loopHandle=null; }
+    if(stream) stream.getTracks().forEach(t=>t.stop());
+    stream=null; torchTrack=null; torchOn=false; frameCount=0;
+    document.getElementById('btnCam').textContent='▶ Iniciar Scanner';
+    document.getElementById('btnCam').classList.remove('on');
+    document.getElementById('btnTorch').classList.remove('show','on');
+    setStatus('','Scanner parado');
+  }
+
+  function flashDetected(){
+    const wrap=document.getElementById('swrap'), frame=document.getElementById('sframe');
+    wrap.classList.add('detected'); frame.classList.add('detected');
+    setTimeout(()=>{wrap.classList.remove('detected');frame.classList.remove('detected');},600);
+  }
+
+  async function toggleTorch(){
+    if(!torchTrack)return;
+    torchOn=!torchOn;
+    try{
+      await torchTrack.applyConstraints({advanced:[{torch:torchOn}]});
+      document.getElementById('btnTorch').classList.toggle('on',torchOn);
+    }catch(e){showToast('Lanterna não suportada',true);torchOn=false;}
+  }
+
+  function setStatus(cls,text){
+    const dot=document.getElementById('sdot');
+    dot.className='sdot'+(cls?' '+cls:'');
+    document.getElementById('stext').textContent=text;
+  }
+
+  // ── QR / confirmação ───────────────────────────────────────────
+  function parseQR(raw){
+    try{const o=JSON.parse(raw);return o.nome||o.name||o.aluno||raw;}
+    catch(e){return raw.trim();}
+  }
+
+  function showConfirmation(nome){
+    if(!nome||nome.length<2)return;
+    pendingName=nome;
+    document.getElementById('cavatar').textContent=nome.charAt(0).toUpperCase();
+    document.getElementById('cname').textContent=nome;
+    document.getElementById('cpanel').classList.add('show');
+    setStatus('reading','Aguardando confirmação...');
+    vibrate();
+  }
+
+  function doConfirm(){
+    if(!pendingName)return;
+    const nome=pendingName, hoje=getToday(), hora=getTime();
+    if(alunos.find(a=>a.nome.toLowerCase()===nome.toLowerCase()&&a.data===hoje)){
+      showToast('⚠️ '+nome+' já embarcou!',false,true);
+    }else{
+      alunos.unshift({nome,data:hoje,hora});
+      saveData(); updateUI();
+      showToast('✅ '+nome+' embarcado às '+hora);
+      vibrate();
+    }
+    cancelConfirm();
+  }
+
+  function cancelConfirm(){
+    pendingName=null;
+    document.getElementById('cpanel').classList.remove('show');
+    setStatus(scanning?'active':'',scanning?'Aponte para o próximo QR Code':'Scanner parado');
+  }
+
+  function addManual(){
+    const input=document.getElementById('manualInput');
+    const nome=input.value.trim();
+    if(!nome){showToast('Digite o nome do aluno',true);return;}
+    input.value=''; showConfirmation(nome);
+  }
+
+  // ── UI ─────────────────────────────────────────────────────────
+  function updateUI(){
+    const lista=alunos.filter(a=>a.data===getToday());
+    const rw=document.getElementById('recentWrap');
+    if(lista.length>0){
+      rw.style.display='block';
+      document.getElementById('recentList').innerHTML=lista.slice(0,5).map(a=>`
+        <div class="ritem">
+          <div class="ravatar">${a.nome.charAt(0).toUpperCase()}</div>
+          <div><div class="rname">${a.nome}</div><div class="rtime">${a.data} • ${a.hora}</div></div>
+          <div class="rbadge">✓</div>
+        </div>`).join('');
+    }else{rw.style.display='none';}
+    updateListUI();
+  }
+
+  function updateListUI(){
+    const lista=alunos.filter(a=>a.data===getToday());
+    document.getElementById('countBadge').textContent=lista.length+' aluno'+(lista.length!==1?'s':'');
+    const content=document.getElementById('listContent');
+    const ar=document.getElementById('actionRow'),bc=document.getElementById('btnClear');
+    if(lista.length===0){
+      content.innerHTML='<div class="empty"><div class="eicon">🎒</div><div class="etext">Nenhum aluno registrado hoje.<br>Use o scanner para registrar embarques.</div></div>';
+      ar.style.display='none';bc.style.display='none';
+    }else{
+      content.innerHTML=lista.map((a,i)=>`
+        <div class="litem">
+          <div class="lnum">${i+1}</div>
+          <div class="ravatar" style="width:32px;height:32px;font-size:12px">${a.nome.charAt(0).toUpperCase()}</div>
+          <div class="lname">${a.nome}</div>
+          <div class="ltime">${a.hora}</div>
+        </div>`).join('');
+      ar.style.display='flex';bc.style.display='block';
+    }
+  }
+
+  function exportCSV(){
+    const lista=alunos.filter(a=>a.data===getToday());
+    if(!lista.length){showToast('Nenhum aluno para exportar',true);return;}
+    let csv='Nome,Data,Hora,Rota,Monitor\n';
+    lista.forEach(a=>{csv+=`"${a.nome}","${a.data}","${a.hora}","${config.rota||''}","${config.nome||''}"\n`;});
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;link.download='presenca_'+getToday().replace(/\//g,'-')+'.csv';link.click();
+    showToast('📤 CSV exportado!');
+  }
+
+  async function syncSheets(){
+    if(!config.url){showToast('Configure a URL do Apps Script!',true);showTab('config');return;}
+    const lista=alunos.filter(a=>a.data===getToday());
+    if(!lista.length){showToast('Nenhum aluno para enviar',true);return;}
+    if(!navigator.onLine){showToast('Sem internet. Use o CSV.',true);return;}
+    showToast('⏳ Enviando...');
+    try{
+      const resp=await fetch(config.url,{method:'POST',body:JSON.stringify({data:getToday(),rota:config.rota||'',monitor:config.nome||'',alunos:lista})});
+      showToast(resp.ok?'☁️ Enviado ao Google Sheets!':'Erro ao enviar. Use o CSV.',!resp.ok);
+    }catch(e){showToast('Falha de conexão. Use o CSV.',true);}
+  }
+
+  function clearList(){
+    if(!confirm('Limpar toda a lista de hoje?'))return;
+    alunos=alunos.filter(a=>a.data!==getToday());
+    saveData();updateUI();showToast('🗑 Lista do dia limpa');
+  }
+
+  function saveConfig(){
+    config={
+      nome:document.getElementById('cfgNome').value.trim(),
+      rota:document.getElementById('cfgRota').value.trim(),
+      url:document.getElementById('cfgUrl').value.trim()
+    };
+    localStorage.setItem('config',JSON.stringify(config));
+    showToast('💾 Configurações salvas!');
+  }
+
+  function showToast(msg,isError=false,isWarn=false){
+    const t=document.getElementById('toast');
+    t.textContent=msg;t.className='toast'+(isError?' error':isWarn?' warn':'');
+    t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);
+  }
+  function vibrate(){try{navigator.vibrate&&navigator.vibrate([50,30,50]);}catch(e){}}
+
+  init();
+</script>
+</body>
+</html>
