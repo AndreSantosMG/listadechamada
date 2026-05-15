@@ -22,6 +22,19 @@
   .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
   .screen{display:none;padding:16px;}.screen.active{display:block;}
 
+  /* Tela de primeiro acesso */
+  .first-run{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;}
+  .first-run.hide{display:none;}
+  .fr-icon{font-size:56px;margin-bottom:16px;}
+  .fr-title{font-size:22px;font-weight:700;margin-bottom:8px;text-align:center;}
+  .fr-sub{font-size:14px;color:var(--muted);margin-bottom:32px;text-align:center;line-height:1.6;}
+  .fr-field{width:100%;margin-bottom:14px;}
+  .fr-field label{display:block;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+  .fr-field input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:14px 16px;border-radius:12px;font-size:16px;outline:none;}
+  .fr-field input:focus{border-color:var(--accent);}
+  .fr-btn{width:100%;padding:16px;background:var(--accent);color:#000;font-weight:700;font-size:16px;border:none;border-radius:12px;cursor:pointer;margin-top:8px;}
+  .fr-btn:active{transform:scale(.98);}
+
   .swrap{position:relative;background:#000;border-radius:var(--radius);overflow:hidden;aspect-ratio:1;max-width:340px;margin:0 auto 10px;border:2px solid var(--border);transition:border-color .2s;}
   .swrap.detected{border-color:var(--success);}
   #video{width:100%;height:100%;object-fit:cover;display:block;}
@@ -96,18 +109,19 @@
   .bexp{background:var(--success);color:#fff;}.bsync{background:var(--accent);color:#000;}
   .bclr{background:var(--surface2);color:var(--muted);border:1px solid var(--border);width:100%;margin-top:8px;padding:12px;font-size:13px;font-weight:700;border-radius:var(--radius);cursor:pointer;}
 
+  /* Config — campos visíveis apenas para o nome e rota */
   .field{margin-bottom:14px;}
   .field label{display:block;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
   .field input{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:10px;font-size:14px;outline:none;}
   .field input:focus{border-color:var(--accent);}
-  .field .hint{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5;}
   .icard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
   .icard h3{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--accent);}
   .icard p{font-size:12px;color:var(--muted);line-height:1.6;}
-  .step{display:flex;gap:10px;margin-bottom:6px;}
-  .stepn{background:var(--accent);color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px;}
   .bsave{width:100%;padding:14px;background:var(--accent);color:#000;font-weight:700;font-size:15px;border:none;border-radius:var(--radius);cursor:pointer;margin-top:4px;}
-  .code{font-family:monospace;font-size:11px;background:var(--bg);padding:10px;border-radius:8px;margin-top:8px;white-space:pre-wrap;user-select:all;color:var(--muted);line-height:1.5;border:1px solid var(--border);}
+  .sync-info{background:var(--surface);border:1px solid var(--success);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .sync-info span{font-size:12px;color:var(--muted);line-height:1.5;}
+  .sync-info strong{color:var(--success);}
+
   .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-120px);background:var(--success);color:#fff;padding:12px 20px;border-radius:40px;font-weight:600;font-size:14px;z-index:999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,.4);max-width:90vw;text-align:center;}
   .toast.show{transform:translateX(-50%) translateY(0);}
   .toast.error{background:var(--danger);}.toast.warn{background:var(--warning);color:#000;}
@@ -115,6 +129,23 @@
 </head>
 <body>
 
+<!-- ── TELA DE PRIMEIRO ACESSO ─────────────────────────────────── -->
+<div class="first-run" id="firstRun">
+  <div class="fr-icon">🚌</div>
+  <div class="fr-title">Bem-vinda!</div>
+  <div class="fr-sub">Preencha seus dados para começar.<br>Você só precisará fazer isso uma vez.</div>
+  <div class="fr-field">
+    <label>Seu nome completo</label>
+    <input type="text" id="frNome" placeholder="Ex: Maria Silva" autocomplete="name">
+  </div>
+  <div class="fr-field">
+    <label>Sua rota / linha</label>
+    <input type="text" id="frRota" placeholder="Ex: Rota 01 — Centro">
+  </div>
+  <button class="fr-btn" onclick="finishFirstRun()">Começar ✓</button>
+</div>
+
+<!-- ── APP PRINCIPAL ───────────────────────────────────────────── -->
 <div class="header">
   <div class="hicon">🚌</div>
   <div><h1>Transporte Escolar</h1><p id="headerDate">Carregando...</p></div>
@@ -127,6 +158,7 @@
   <div class="tab" onclick="showTab('config')">⚙️ Config</div>
 </div>
 
+<!-- SCANNER -->
 <div class="screen active" id="tab-scanner">
   <div class="swrap" id="swrap">
     <video id="video" playsinline autoplay muted></video>
@@ -136,7 +168,6 @@
     </div>
     <button class="btorch" id="btnTorch" onclick="toggleTorch()">🔦</button>
   </div>
-
   <div class="srow"><div class="sdot" id="sdot"></div><span class="stext" id="stext">Pressione o botão para iniciar</span></div>
   <button class="bcam" id="btnCam" onclick="toggleCamera()">▶ Iniciar Scanner</button>
   <button class="bdiag" id="btnDiag" onclick="toggleDiag()">🔍 Diagnóstico</button>
@@ -177,6 +208,7 @@
   </div>
 </div>
 
+<!-- LISTA -->
 <div class="screen" id="tab-lista">
   <div class="dbar">
     <div><div class="dlabel">Data de hoje</div><div class="dvalue" id="listDate">—</div></div>
@@ -190,43 +222,25 @@
   <button class="bclr" id="btnClear" style="display:none" onclick="clearList()">🗑 Limpar lista do dia</button>
 </div>
 
+<!-- CONFIG — apenas nome e rota para a monitora -->
 <div class="screen" id="tab-config">
-  <div class="icard">
-    <h3>🔗 Integração com Google Sheets</h3>
-    <div class="step"><div class="stepn">1</div><p>Acesse sheets.new e crie uma nova planilha</p></div>
-    <div class="step"><div class="stepn">2</div><p>Extensões → Apps Script → cole o script abaixo</p></div>
-    <div class="step"><div class="stepn">3</div><p>Implantar → Nova implantação → Web App → Acesso: Qualquer pessoa</p></div>
-    <div class="step"><div class="stepn">4</div><p>Copie a URL gerada e cole no campo abaixo</p></div>
+  <div class="sync-info">
+    <span style="font-size:20px">☁️</span>
+    <span>Dados enviados automaticamente para a planilha central.<br><strong>Configurado pelo administrador.</strong></span>
   </div>
-  <div class="field"><label>Nome da monitora / motorista</label><input type="text" id="cfgNome" placeholder="Ex: Maria Silva"></div>
-  <div class="field"><label>Rota / Linha</label><input type="text" id="cfgRota" placeholder="Ex: Rota 01 — Centro"></div>
+
   <div class="field">
-    <label>URL do Google Apps Script</label>
-    <input type="url" id="cfgUrl" placeholder="https://script.google.com/macros/s/...">
-    <div class="hint">Deixe em branco para usar apenas exportação CSV.</div>
+    <label>Seu nome</label>
+    <input type="text" id="cfgNome" placeholder="Ex: Maria Silva">
   </div>
-  <button class="bsave" onclick="saveConfig()">💾 Salvar configurações</button>
+  <div class="field">
+    <label>Sua rota / linha</label>
+    <input type="text" id="cfgRota" placeholder="Ex: Rota 01 — Centro">
+  </div>
+  <button class="bsave" onclick="saveConfig()">💾 Salvar</button>
+
   <div class="divider"></div>
-  <div class="icard">
-    <h3>📜 Script para Google Apps Script</h3>
-    <div class="code">function doPost(e){
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var data = JSON.parse(e.postData.contents);
-  var sheetName = data.data || 'Registros';
-  var sheet = ss.getSheetByName(sheetName)
-             || ss.insertSheet(sheetName);
-  if(sheet.getLastRow()===0)
-    sheet.appendRow(
-      ['Nome','Data','Hora','Rota','Monitor']);
-  data.alunos.forEach(function(a){
-    sheet.appendRow([
-      a.nome, a.data, a.hora,
-      data.rota, data.monitor]);
-  });
-  return ContentService
-    .createTextOutput('OK');
-}</div>
-  </div>
+
   <div class="icard">
     <h3>📱 QR Code dos alunos</h3>
     <p>Conteúdo: nome do aluno em texto simples.<br>Ex: <code style="background:var(--bg);padding:2px 5px;border-radius:4px">Ana Souza</code><br><br>Gere gratuitamente em <strong>qr-code-generator.com</strong></p>
@@ -236,6 +250,12 @@
 <div class="toast" id="toast"></div>
 
 <script>
+  // ╔══════════════════════════════════════════════════════════════╗
+  // ║  URL DA PLANILHA — configurada pelo administrador           ║
+  // ║  As monitoras NÃO precisam preencher isso.                  ║
+  // ╚══════════════════════════════════════════════════════════════╝
+  const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbyHqf_PbMrmoRD6X6BP-Yvx1yoifgLEIgYIS8maLbkSUSQ7UFW2-BXRd32rpnVUN7YC/exec';
+
   // ── estado global ──────────────────────────────────────────────
   let stream=null, scanning=false, loopHandle=null;
   let alunos=[], config={};
@@ -243,8 +263,7 @@
   let lastScanned='', lastScannedTime=0;
   let torchOn=false, torchTrack=null;
   let diagMode=false, frameCount=0;
-  let useNativeDetector=false;
-  let nativeDetector=null;
+  let useNativeDetector=false, nativeDetector=null;
 
   const video=document.getElementById('video');
   const canvas=document.createElement('canvas');
@@ -252,11 +271,13 @@
 
   // ── init ───────────────────────────────────────────────────────
   function init(){
-    loadData(); updateUI(); updateDateLabels(); checkOnline();
+    loadData();
+    updateDateLabels();
+    checkOnline();
     window.addEventListener('online',checkOnline);
     window.addEventListener('offline',checkOnline);
 
-    // Tenta usar BarcodeDetector nativo (Android Chrome 83+)
+    // BarcodeDetector nativo (Android Chrome 83+)
     if('BarcodeDetector' in window){
       BarcodeDetector.getSupportedFormats().then(fmts=>{
         if(fmts.includes('qr_code')){
@@ -271,6 +292,28 @@
       document.getElementById('dEngine').textContent='jsQR';
       document.getElementById('dEngine').className='diag-value warn';
     }
+
+    // Primeiro acesso: mostra tela de boas-vindas se não tiver config
+    if(!config.nome || !config.rota){
+      document.getElementById('firstRun').classList.remove('hide');
+    } else {
+      document.getElementById('firstRun').classList.add('hide');
+      updateUI();
+    }
+  }
+
+  function finishFirstRun(){
+    const nome=document.getElementById('frNome').value.trim();
+    const rota=document.getElementById('frRota').value.trim();
+    if(!nome){showToast('Digite seu nome',true);return;}
+    if(!rota){showToast('Digite sua rota',true);return;}
+    config={nome,rota};
+    localStorage.setItem('config',JSON.stringify(config));
+    document.getElementById('cfgNome').value=nome;
+    document.getElementById('cfgRota').value=rota;
+    document.getElementById('firstRun').classList.add('hide');
+    updateUI();
+    showToast('✅ Bem-vinda, '+nome+'!');
   }
 
   // ── dados ──────────────────────────────────────────────────────
@@ -281,7 +324,6 @@
       config=JSON.parse(localStorage.getItem('config')||'{}');
       if(config.nome)document.getElementById('cfgNome').value=config.nome;
       if(config.rota)document.getElementById('cfgRota').value=config.rota;
-      if(config.url)document.getElementById('cfgUrl').value=config.url;
     }catch(e){}
   }
   function saveData(){
@@ -320,93 +362,68 @@
       });
       video.srcObject=stream;
       video.play().catch(()=>{});
-
-      scanning=true;
-      frameCount=0;
+      scanning=true; frameCount=0;
       document.getElementById('btnCam').textContent='⏹ Parar Scanner';
       document.getElementById('btnCam').classList.add('on');
       setStatus('active','Aponte para o QR Code');
-
       torchTrack=stream.getVideoTracks()[0];
       const s=torchTrack.getSettings?torchTrack.getSettings():{};
       document.getElementById('dRes').textContent=(s.width||'?')+'×'+(s.height||'?');
       const caps=torchTrack.getCapabilities?torchTrack.getCapabilities():{};
       if(caps.torch)document.getElementById('btnTorch').classList.add('show');
-
-      // Aguarda vídeo ter pixels antes de iniciar loop
-      video.addEventListener('playing', startLoop, {once:true});
-      // Fallback: inicia mesmo assim após 1s
-      setTimeout(()=>{ if(scanning&&frameCount===0) startLoop(); }, 1000);
-
+      video.addEventListener('playing',startLoop,{once:true});
+      setTimeout(()=>{if(scanning&&frameCount===0)startLoop();},1000);
     }catch(e){
       showToast('Erro na câmera: '+e.message,true);
     }
   }
 
   function startLoop(){
-    if(loopHandle) return; // já iniciado
-    loopHandle = setTimeout(tick, 200);
+    if(loopHandle)return;
+    loopHandle=setTimeout(tick,200);
   }
 
   async function tick(){
-    if(!scanning){ loopHandle=null; return; }
-
-    const w=video.videoWidth, h=video.videoHeight;
-    if(w>0 && h>0 && !pendingName){
+    if(!scanning){loopHandle=null;return;}
+    const w=video.videoWidth,h=video.videoHeight;
+    if(w>0&&h>0&&!pendingName){
       frameCount++;
-      if(diagMode) document.getElementById('dFrames').textContent=frameCount;
-
+      if(diagMode)document.getElementById('dFrames').textContent=frameCount;
       let result=null;
-
-      if(useNativeDetector && nativeDetector){
-        // ── Engine nativa do sistema operacional ──
-        try{
-          const codes=await nativeDetector.detect(video);
-          if(codes.length>0) result=codes[0].rawValue;
-        }catch(e){}
-
-      } else {
-        // ── jsQR com múltiplos recortes ──
-        canvas.width=w; canvas.height=h;
+      if(useNativeDetector&&nativeDetector){
+        try{const codes=await nativeDetector.detect(video);if(codes.length>0)result=codes[0].rawValue;}catch(e){}
+      }else{
+        canvas.width=w;canvas.height=h;
         ctx.drawImage(video,0,0,w,h);
-
-        // Tenta 3 regiões: imagem inteira, 80%, 60%
-        const regions=[
-          [0,0,w,h],
-          [Math.floor(w*.1),Math.floor(h*.1),Math.floor(w*.8),Math.floor(h*.8)],
-          [Math.floor(w*.2),Math.floor(h*.2),Math.floor(w*.6),Math.floor(h*.6)],
-        ];
+        const regions=[[0,0,w,h],[Math.floor(w*.1),Math.floor(h*.1),Math.floor(w*.8),Math.floor(h*.8)],[Math.floor(w*.2),Math.floor(h*.2),Math.floor(w*.6),Math.floor(h*.6)]];
         for(const [x,y,rw,rh] of regions){
           const id=ctx.getImageData(x,y,rw,rh);
           const code=jsQR(id.data,rw,rh,{inversionAttempts:'attemptBoth'});
-          if(code){ result=code.data; break; }
+          if(code){result=code.data;break;}
         }
       }
-
       if(diagMode){
         document.getElementById('dDetected').textContent=result?'✅ SIM':'não';
         document.getElementById('dDetected').className='diag-value '+(result?'ok':'bad');
-        if(result) document.getElementById('dRaw').textContent=result.substring(0,60);
+        if(result)document.getElementById('dRaw').textContent=result.substring(0,60);
       }
-
       if(result){
         const now=Date.now();
         if(result!==lastScanned||now-lastScannedTime>3000){
-          lastScanned=result; lastScannedTime=now;
+          lastScanned=result;lastScannedTime=now;
           flashDetected();
           showConfirmation(parseQR(result));
         }
       }
     }
-
-    loopHandle=setTimeout(tick, useNativeDetector?150:200);
+    loopHandle=setTimeout(tick,useNativeDetector?150:200);
   }
 
   function stopCamera(){
     scanning=false;
-    if(loopHandle){ clearTimeout(loopHandle); loopHandle=null; }
-    if(stream) stream.getTracks().forEach(t=>t.stop());
-    stream=null; torchTrack=null; torchOn=false; frameCount=0;
+    if(loopHandle){clearTimeout(loopHandle);loopHandle=null;}
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    stream=null;torchTrack=null;torchOn=false;frameCount=0;
     document.getElementById('btnCam').textContent='▶ Iniciar Scanner';
     document.getElementById('btnCam').classList.remove('on');
     document.getElementById('btnTorch').classList.remove('show','on');
@@ -414,18 +431,16 @@
   }
 
   function flashDetected(){
-    const wrap=document.getElementById('swrap'), frame=document.getElementById('sframe');
-    wrap.classList.add('detected'); frame.classList.add('detected');
+    const wrap=document.getElementById('swrap'),frame=document.getElementById('sframe');
+    wrap.classList.add('detected');frame.classList.add('detected');
     setTimeout(()=>{wrap.classList.remove('detected');frame.classList.remove('detected');},600);
   }
 
   async function toggleTorch(){
     if(!torchTrack)return;
     torchOn=!torchOn;
-    try{
-      await torchTrack.applyConstraints({advanced:[{torch:torchOn}]});
-      document.getElementById('btnTorch').classList.toggle('on',torchOn);
-    }catch(e){showToast('Lanterna não suportada',true);torchOn=false;}
+    try{await torchTrack.applyConstraints({advanced:[{torch:torchOn}]});document.getElementById('btnTorch').classList.toggle('on',torchOn);}
+    catch(e){showToast('Lanterna não suportada',true);torchOn=false;}
   }
 
   function setStatus(cls,text){
@@ -439,7 +454,6 @@
     try{const o=JSON.parse(raw);return o.nome||o.name||o.aluno||raw;}
     catch(e){return raw.trim();}
   }
-
   function showConfirmation(nome){
     if(!nome||nome.length<2)return;
     pendingName=nome;
@@ -449,32 +463,29 @@
     setStatus('reading','Aguardando confirmação...');
     vibrate();
   }
-
   function doConfirm(){
     if(!pendingName)return;
-    const nome=pendingName, hoje=getToday(), hora=getTime();
+    const nome=pendingName,hoje=getToday(),hora=getTime();
     if(alunos.find(a=>a.nome.toLowerCase()===nome.toLowerCase()&&a.data===hoje)){
       showToast('⚠️ '+nome+' já embarcou!',false,true);
     }else{
       alunos.unshift({nome,data:hoje,hora});
-      saveData(); updateUI();
+      saveData();updateUI();
       showToast('✅ '+nome+' embarcado às '+hora);
       vibrate();
     }
     cancelConfirm();
   }
-
   function cancelConfirm(){
     pendingName=null;
     document.getElementById('cpanel').classList.remove('show');
     setStatus(scanning?'active':'',scanning?'Aponte para o próximo QR Code':'Scanner parado');
   }
-
   function addManual(){
     const input=document.getElementById('manualInput');
     const nome=input.value.trim();
     if(!nome){showToast('Digite o nome do aluno',true);return;}
-    input.value=''; showConfirmation(nome);
+    input.value='';showConfirmation(nome);
   }
 
   // ── UI ─────────────────────────────────────────────────────────
@@ -492,7 +503,6 @@
     }else{rw.style.display='none';}
     updateListUI();
   }
-
   function updateListUI(){
     const lista=alunos.filter(a=>a.data===getToday());
     document.getElementById('countBadge').textContent=lista.length+' aluno'+(lista.length!==1?'s':'');
@@ -513,6 +523,7 @@
     }
   }
 
+  // ── exportar / enviar ──────────────────────────────────────────
   function exportCSV(){
     const lista=alunos.filter(a=>a.data===getToday());
     if(!lista.length){showToast('Nenhum aluno para exportar',true);return;}
@@ -526,13 +537,12 @@
   }
 
   async function syncSheets(){
-    if(!config.url){showToast('Configure a URL do Apps Script!',true);showTab('config');return;}
     const lista=alunos.filter(a=>a.data===getToday());
     if(!lista.length){showToast('Nenhum aluno para enviar',true);return;}
     if(!navigator.onLine){showToast('Sem internet. Use o CSV.',true);return;}
     showToast('⏳ Enviando...');
     try{
-      const resp=await fetch(config.url,{method:'POST',body:JSON.stringify({data:getToday(),rota:config.rota||'',monitor:config.nome||'',alunos:lista})});
+      const resp=await fetch(SHEETS_URL,{method:'POST',body:JSON.stringify({data:getToday(),rota:config.rota||'',monitor:config.nome||'',alunos:lista})});
       showToast(resp.ok?'☁️ Enviado ao Google Sheets!':'Erro ao enviar. Use o CSV.',!resp.ok);
     }catch(e){showToast('Falha de conexão. Use o CSV.',true);}
   }
@@ -546,8 +556,7 @@
   function saveConfig(){
     config={
       nome:document.getElementById('cfgNome').value.trim(),
-      rota:document.getElementById('cfgRota').value.trim(),
-      url:document.getElementById('cfgUrl').value.trim()
+      rota:document.getElementById('cfgRota').value.trim()
     };
     localStorage.setItem('config',JSON.stringify(config));
     showToast('💾 Configurações salvas!');
